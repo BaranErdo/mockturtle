@@ -55,7 +55,38 @@ struct simulation_cec_stats
 
 namespace detail
 {
+class my_simulator
+{
+public:
+        uint32_t split_var;
+        uint32_t rounds;
+        uint32_t num_var;
+        my_simulator() = delete;
+        my_simulator (uint32_t split_var, uint32_t num_var, uint32_t rounds) : split_var(split_var), num_var(num_var), rounds(rounds) {}
 
+        kitty::dynamic_truth_table compute_constant (bool value) const
+        {
+                kitty::dynamic_truth_table tt(split_var);
+                return value ? ~tt : tt;
+        }
+        kitty::dynamic_truth_table compute_pi (uint32_t index) const
+        {
+                kitty::dynamic_truth_table tt(split_var);
+                if (index < split_var)
+                        kitty::create_nth_var(tt, index);
+                else {
+                        uint64_t temp = rounds;
+                        if ((temp >> (index - split_var)) & 1)
+                                tt= ~tt;
+                }
+                return tt;
+        }
+        kitty::dynamic_truth_table compute_not( kitty::dynamic_truth_table const& value) const
+        {
+                return ~value;
+        }
+
+};
 template<class Ntk>
 class simulation_cec_impl
 {
@@ -74,12 +105,45 @@ public:
   bool run()
   {
     /* TODO: write your implementation here */
-    return false;
+     _st.split_var = split_calculate(_ntk.num_pis());
+        _st.rounds = round_calculate(_st.split_var, _ntk.num_pis());
+        for( uint32_t i = 0; i < _st.rounds; i++)
+        {
+        my_simulator sim(_st.split_var, _ntk.num_pis(), _st.rounds);
+        const std::vector<kitty::dynamic_truth_table> results = simulate<kitty::dynamic_truth_table>(_ntk, sim);
+        for(auto& out : results)
+        {
+                if(!kitty::is_const0(out))
+                {
+                        return false;
+                }
+        }
+        }
+        return true;
+    
   }
 
 private:
   /* you can add additional methods here */
-
+ uint32_t split_calculate(uint32_t num_var)
+ {
+         if (num_var <= 6)
+         {
+                 return num_var;
+         } else {
+                 uint32_t temp = 0;
+                for (uint32_t i = 7; ((i <= _ntk.num_pis()) & (((32 + (1 << i-3)) * _ntk.size()) <= (1 << 29))); i++)
+                {
+                        temp = i;
+                }
+                return temp;
+         }
+ }
+ uint32_t round_calculate( uint32_t split_var, uint32_t num_var)
+ {
+         uint32_t difference = num_var - split_var;
+         return (1 << difference);
+ }
 private:
   Ntk& _ntk;
   simulation_cec_stats& _st;

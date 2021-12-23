@@ -109,7 +109,7 @@ public:
         _st.rounds = round_calculate(_st.split_var, _ntk.num_pis());
         for( uint32_t i = 0; i < _st.rounds; i++)
         {
-        my_simulator sim(_st.split_var, _ntk.num_pis(), _st.rounds);
+        my_simulator sim(_st.split_var, _ntk.num_pis(), i);
         const std::vector<kitty::dynamic_truth_table> results = simulate<kitty::dynamic_truth_table>(_ntk, sim);
         for(auto& out : results)
         {

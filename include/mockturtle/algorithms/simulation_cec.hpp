@@ -29,7 +29,7 @@
 
   EPFL CS-472 2021 Final Project Option 2
 */
-
+ 
 #pragma once
 
 #include <kitty/constructors.hpp>
